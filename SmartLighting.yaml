@@ -119,14 +119,15 @@ action:
         continue_on_error: true
     else:
       - if:
-          # Условие: мастер-выключатель либо не задан, либо включён
-          # - "{{ master_switch_condition }}"
-          # Движение есть
+          - condition: state
+            entity_id: !input master_switch
+            state: "on"
           - condition: state
             entity_id: !input motion_sensor
             state: "on"
-          # Темно
-          # - "{{ illuminance_sensor_condition }}"
+          - condition: numeric_state
+            entity_id: !input illuminance_sensor
+            below: !input illuminance_threshold
         then:
           - service: light.turn_on
             target: !input light_entities
