@@ -58,6 +58,16 @@ blueprint:
 
 mode: restart
 
+variables:
+  sun_elevation_condition: '{{ sun == none or ((state_attr(sun,"elevation") | float) <= sun_elevation) }}'
+  media_player_condition: '{{ media_player == none or states[media_player].state != "playing" }}'
+  door_sensor_condition: '{{ door_sensor == none or (states[door_sensor].state == "on" ) == door_light_behavior }}'
+  light_transition_value: '{{ light_transition_awake if (states[sleep].state == "on") else light_transition_sleep }}'
+  last_room_movement_condition: "{{ last_room_movement == none or last_room_movement == room_name }}"
+  persons_home_condition: '{{ state[persons].state == "home" }}'
+  sleep_light_condition: '{{ sleep == none or (states[sleep].state == "on") == sleep_light_on }}'
+  motion_condition: '{{ state[motion_sensor].state == "on" }}'
+
 trigger:
   # 1. Движение обнаружено
   - platform: state
@@ -69,7 +79,6 @@ trigger:
   - platform: state
     entity_id: !input master_switch
     to: "on"
-    #enabled: !lambda: "master_switch" in inputs and inputs["master_switch"]
     id: "master_on"
 
   # 3. Освещённость упала ниже порога
@@ -82,19 +91,18 @@ trigger:
   - platform: state
     entity_id: !input master_switch
     to: "off"
-    #enabled: !lambda: "master_switch" in inputs and inputs["master_switch"]
     id: "master_off"
 
-condition:
-  - alias: "Мастер-выключатель включён и темно"
-    condition: and
-    conditions:
-      - condition: state
-        entity_id: !input master_switch
-        state: "on"
-      - condition: numeric_state
-        entity_id: !input illuminance_sensor
-        below: !input illuminance_threshold
+# condition:
+#   - alias: "Мастер-выключатель включён и темно"
+#     condition: and
+#     conditions:
+#       - condition: state
+#         entity_id: !input master_switch
+#         state: "on"
+#       - condition: numeric_state
+#         entity_id: !input illuminance_sensor
+#         below: !input illuminance_threshold
 
 action:
   # Обработка выключения при отключении мастера
