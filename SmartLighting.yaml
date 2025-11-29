@@ -110,8 +110,8 @@ condition:
 action:
   # Обработка выключения при отключении мастера
   - if:
-      - alias: Триггер отключения мастера
-        "{{ trigger.id == 'master_off' }}"
+      - "{{ trigger.id == 'master_off' }}"
+      alias: Триггер отключения мастера
         
     then:
       - alias: Выключаем свет
@@ -119,8 +119,7 @@ action:
         target: !input light_entities
         continue_on_error: true
     else:
-      - alias: Остальные триггеры
-        if:
+      - if:
           # Условие: мастер-выключатель либо не задан, либо включён
           # - "{{ master_switch_condition }}"
           # Движение есть
