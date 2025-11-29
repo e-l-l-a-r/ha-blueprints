@@ -6,7 +6,7 @@ blueprint:
     Свет выключается через заданный таймаут после прекращения движения
     или немедленно, если мастер-выключатель выключен.
   domain: automation
-  source_url: https://github.com/e-l-l-a-r/ha-blueprints/new/main https://github.com/e-l-l-a-r/ha-blueprints
+  source_url: https://github.com/e-l-l-a-r/ha-blueprints
   input:
     master_switch:
       name: Мастер-выключатель
