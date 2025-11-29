@@ -17,8 +17,8 @@ blueprint:
           multiple: false
       default: ""
     illuminance_sensor:
-      name: Датчик освещённости
-      description: Сенсор освещённости (в люксах)
+      name: Датчик освещённости (Опционально)
+      description: Сенсор освещённости (в люксах) (Оставьте пустым, если не используется)
       selector:
         entity:
           domain: sensor
@@ -59,14 +59,8 @@ blueprint:
 mode: restart
 
 variables:
-  sun_elevation_condition: '{{ sun == none or ((state_attr(sun,"elevation") | float) <= sun_elevation) }}'
-  media_player_condition: '{{ media_player == none or states[media_player].state != "playing" }}'
-  door_sensor_condition: '{{ door_sensor == none or (states[door_sensor].state == "on" ) == door_light_behavior }}'
-  light_transition_value: '{{ light_transition_awake if (states[sleep].state == "on") else light_transition_sleep }}'
-  last_room_movement_condition: "{{ last_room_movement == none or last_room_movement == room_name }}"
-  persons_home_condition: '{{ state[persons].state == "home" }}'
-  sleep_light_condition: '{{ sleep == none or (states[sleep].state == "on") == sleep_light_on }}'
-  motion_condition: '{{ state[motion_sensor].state == "on" }}'
+  master_switch_condition: '{{ master_switch == none or (states[master_switch].state == "on" ) }}'
+  illuminance_sensor_condition : '{{ illuminance_sensor == none or (states[illuminance_sensor].state < illuminance_threshold ) }}'
 
 trigger:
   # 1. Движение обнаружено
@@ -115,17 +109,13 @@ action:
     else:
       - if:
           # Условие: мастер-выключатель либо не задан, либо включён
-          - >
-              {{ not inputs.master_switch or
-                 (is_state(inputs.master_switch, 'on')) }}
+          - "{{ master_switch_condition }}"
           # Движение есть
           - condition: state
             entity_id: !input motion_sensor
             state: "on"
           # Темно
-          - condition: numeric_state
-            entity_id: !input illuminance_sensor
-            below: !input illuminance_threshold
+          - "{{ illuminance_sensor_condition }}"
         then:
           - service: light.turn_on
             target: !input light_entities
