@@ -130,14 +130,12 @@ action:
         then:
           - service: light.turn_on
             target: !input light_entities
-          - alias: Ждем прекращения движеиня
-            wait_for_trigger:
+          - wait_for_trigger:
               - platform: state
                 entity_id: !input motion_sensor
                 to: "off"
                 for:
                   seconds: !input motion_timeout
-          - alias: Отключаем свет
-            service: light.turn_off
+          - service: light.turn_off
             target: !input light_entities
             continue_on_error: true
