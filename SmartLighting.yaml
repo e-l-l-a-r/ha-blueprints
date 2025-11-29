@@ -1,0 +1,104 @@
+blueprint:
+  name: Умное освещение с мастер-выключателем и датчиком освещённости
+  description: >
+    Включает свет при обнаружении движения, только если мастер-выключатель включён,
+    уровень освещённости ниже заданного порога и есть движение.
+    Свет выключается через заданный таймаут после прекращения движения
+    или немедленно, если мастер-выключатель выключен.
+  domain: automation
+  source_url: https://github.com/e-l-l-a-r/ha-blueprints/new/main https://github.com/e-l-l-a-r/ha-blueprints
+  input:
+    master_switch:
+      name: Мастер-выключатель
+      description: Переключатель, разрешающий автоматизацию освещения (обычно input_boolean)
+      selector:
+        entity:
+          domain: input_boolean
+    illuminance_sensor:
+      name: Датчик освещённости
+      description: Сенсор освещённости (в люксах)
+      selector:
+        entity:
+          domain: sensor
+    illuminance_threshold:
+      name: Порог освещённости (люкс)
+      description: Свет включается только если освещённость ниже этого значения
+      selector:
+        number:
+          min: 0
+          max: 1000
+          step: 1
+          mode: box
+      default: 50
+    motion_sensor:
+      name: Датчик присутствия
+      description: Бинарный датчик движения
+      selector:
+        entity:
+          domain: binary_sensor
+    light_entities:
+      name: Светильники
+      description: Один или несколько светильников для управления
+      selector:
+        target:
+          entity:
+            domain: light
+    motion_timeout:
+      name: Таймаут отсутствия движения (минуты)
+      description: Через сколько минут после окончания движения выключать свет
+      selector:
+        number:
+          min: 1
+          max: 60
+          step: 1
+          mode: box
+      default: 5
+
+mode: restart
+
+trigger:
+  - platform: state
+    entity_id: !input motion_sensor
+    to: "on"
+    id: "motion_on"
+  - platform: state
+    entity_id: !input master_switch
+    to: "off"
+    id: "master_off"
+
+condition:
+  - alias: "Мастер-выключатель включён и темно"
+    condition: and
+    conditions:
+      - condition: state
+        entity_id: !input master_switch
+        state: "on"
+      - condition: numeric_state
+        entity_id: !input illuminance_sensor
+        below: !input illuminance_threshold
+
+action:
+  - choose:
+      # Сценарий 1: сработало движение → включить свет и ждать таймаут
+      - conditions:
+          - "{{ trigger.id == 'motion_on' }}"
+        sequence:
+          - service: light.turn_on
+            target: !input light_entities
+          - wait_for_trigger:
+              - platform: state
+                entity_id: !input motion_sensor
+                to: "off"
+                for:
+                  minutes: !input motion_timeout
+          - service: light.turn_off
+            target: !input light_entities
+            continue_on_error: true
+
+      # Сценарий 2: мастер-выключатель выключен → выключить свет немедленно
+      - conditions:
+          - "{{ trigger.id == 'master_off' }}"
+        sequence:
+          - service: light.turn_off
+            target: !input light_entities
+            continue_on_error: true
