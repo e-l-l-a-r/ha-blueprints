@@ -1,5 +1,5 @@
 blueprint:
-  name: Умное освещение с мастер-выключателем и датчиком освещённости
+  name: Умное освещение
   description: >
     Включает свет при обнаружении движения, только если мастер-выключатель включён,
     уровень освещённости ниже заданного порога и есть движение.
@@ -69,7 +69,7 @@ trigger:
   - platform: state
     entity_id: !input master_switch
     to: "on"
-    enabled: !lambda: "master_switch" in inputs and inputs["master_switch"]
+    #enabled: !lambda: "master_switch" in inputs and inputs["master_switch"]
     id: "master_on"
 
   # 3. Освещённость упала ниже порога
@@ -82,7 +82,7 @@ trigger:
   - platform: state
     entity_id: !input master_switch
     to: "off"
-    enabled: !lambda: "master_switch" in inputs and inputs["master_switch"]
+    #enabled: !lambda: "master_switch" in inputs and inputs["master_switch"]
     id: "master_off"
 
 condition:
