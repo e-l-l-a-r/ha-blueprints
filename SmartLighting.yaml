@@ -14,8 +14,6 @@ blueprint:
       selector:
         entity:
           domain: binary_sensor
-      #     multiple: false
-      # default: ""
     illuminance_sensor:
       name: Датчик освещённости (Опционально)
       description: Сенсор освещённости (в люксах) (Оставьте пустым, если не используется)
@@ -85,9 +83,9 @@ trigger:
     to: "off"
     id: "master_off"
 
-variables:
-  master_switch_condition: '{{ master_switch == none or (states[master_switch].state == "on" ) }}'
-  illuminance_sensor_condition : '{{ illuminance_sensor == none or (states[illuminance_sensor].state < illuminance_threshold ) }}'
+# variables:
+#   master_switch_condition: '{{ master_switch == none or (states[master_switch].state == "on" ) }}'
+#   illuminance_sensor_condition : '{{ illuminance_sensor == none or (states[illuminance_sensor].state < illuminance_threshold ) }}'
 
 condition:
   - alias: "Мастер-выключатель включён и темно"
@@ -111,8 +109,6 @@ action:
   # Обработка выключения при отключении мастера
   - if:
       - "{{ trigger.id == 'master_off' }}"
-      # alias: Триггер отключения мастера
-        
     then:
       - service: light.turn_off
         target: !input light_entities
