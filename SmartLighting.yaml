@@ -58,10 +58,6 @@ blueprint:
 
 mode: restart
 
-variables:
-  master_switch_condition: '{{ master_switch == none or (states[master_switch].state == "on" ) }}'
-  illuminance_sensor_condition : '{{ illuminance_sensor == none or (states[illuminance_sensor].state < illuminance_threshold ) }}'
-
 trigger:
   # 1. Движение обнаружено
   - platform: state
@@ -71,6 +67,8 @@ trigger:
 
   # 2. Мастер-выключатель включён
   - platform: state
+    alias: Мастер выключен
+    name: Мастер
     entity_id: !input master_switch
     to: "on"
     id: "master_on"
@@ -87,16 +85,16 @@ trigger:
     to: "off"
     id: "master_off"
 
-# condition:
-#   - alias: "Мастер-выключатель включён и темно"
-#     condition: and
-#     conditions:
-#       - condition: state
-#         entity_id: !input master_switch
-#         state: "on"
-#       - condition: numeric_state
-#         entity_id: !input illuminance_sensor
-#         below: !input illuminance_threshold
+variables:
+  master_switch_condition: '{{ master_switch == none or (states[master_switch].state == "on" ) }}'
+  illuminance_sensor_condition : '{{ illuminance_sensor == none or (states[illuminance_sensor].state < illuminance_threshold ) }}'
+
+condition:
+  - alias: "Мастер-выключатель включён и темно"
+    condition: and
+    conditions:
+      - "{{ master_switch_condition }}"
+      - "{{ illuminance_sensor_condition }}"
 
 action:
   # Обработка выключения при отключении мастера
