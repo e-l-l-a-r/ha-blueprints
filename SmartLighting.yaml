@@ -81,7 +81,7 @@ trigger:
   # 4. Мастер-выключатель выключен → выключить свет
   - platform: state
     entity_id: !input master_switch
-    alias: Мастер выключен
+    alias: Мастер отключен
     to: "off"
     id: "master_off"
 
@@ -111,7 +111,7 @@ action:
   # Обработка выключения при отключении мастера
   - if:
       - "{{ trigger.id == 'master_off' }}"
-      alias: Триггер отключения мастера
+      # alias: Триггер отключения мастера
         
     then:
       - alias: Выключаем свет
