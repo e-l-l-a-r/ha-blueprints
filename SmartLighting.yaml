@@ -114,8 +114,7 @@ action:
       # alias: Триггер отключения мастера
         
     then:
-      - alias: Выключаем свет
-        service: light.turn_off
+      - service: light.turn_off
         target: !input light_entities
         continue_on_error: true
     else:
@@ -123,18 +122,16 @@ action:
           # Условие: мастер-выключатель либо не задан, либо включён
           # - "{{ master_switch_condition }}"
           # Движение есть
-          - alias: Обнаружено присутствие
-            condition: state
+          - condition: state
             entity_id: !input motion_sensor
             state: "on"
           # Темно
           # - "{{ illuminance_sensor_condition }}"
         then:
-          - alias: Включаем свет
-            service: light.turn_on
+          - service: light.turn_on
             target: !input light_entities
           - alias: Ждем прекращения движеиня
-             wait_for_trigger:
+            wait_for_trigger:
               - platform: state
                 entity_id: !input motion_sensor
                 to: "off"
