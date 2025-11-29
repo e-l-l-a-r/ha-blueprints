@@ -67,8 +67,7 @@ trigger:
 
   # 2. Мастер-выключатель включён
   - platform: state
-    # alias: Мастер выключен
-    # name: Мастер
+    alias: Мастер включен
     entity_id: !input master_switch
     to: "on"
     id: "master_on"
@@ -82,6 +81,7 @@ trigger:
   # 4. Мастер-выключатель выключен → выключить свет
   - platform: state
     entity_id: !input master_switch
+    alias: Мастер выключен
     to: "off"
     id: "master_off"
 
