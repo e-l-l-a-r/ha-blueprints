@@ -100,15 +100,15 @@ condition:
           entity_id: !input illuminance_sensor
           below: !input illuminance_threshold
           
-      - alias: "Мастер-выключатель отключён и свет включен"
-        condition: and
-        conditions:
-        - condition: state
-          entity_id: !input master_switch
-          state: "off"
-        - condition: state
-          entity_id: !input light_entities
-          state: "on"
+      # - alias: "Мастер-выключатель отключён и свет включен"
+      #   condition: and
+      #   conditions:
+      - condition: state
+        entity_id: !input master_switch
+        state: "off"
+        # - condition: state
+        #   entity_id: !input light_entities
+        #   state: "on"
 action:
   # Обработка выключения при отключении мастера
   - if:
