@@ -93,8 +93,19 @@ condition:
   - alias: "Мастер-выключатель включён и темно"
     condition: and
     conditions:
-      - "{{ master_switch_condition }}"
-      - "{{ illuminance_sensor_condition }}"
+      - condition: state
+        entity_id: !input master_switch
+        state: "on"
+      - condition: numeric_state
+        entity_id: !input illuminance_sensor
+        below: !input illuminance_threshold
+
+# condition:
+#   - alias: "Мастер-выключатель включён и темно"
+#     condition: and
+#     conditions:
+#       - "{{ master_switch_condition }}"
+#       - "{{ illuminance_sensor_condition }}"
 
 action:
   # Обработка выключения при отключении мастера
