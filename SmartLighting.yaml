@@ -85,9 +85,9 @@ trigger:
     to: "off"
     id: "master_off"
 
-# variables:
-#   master_switch_condition: '{{ master_switch == none or (states[master_switch].state == "on" ) }}'
-#   illuminance_sensor_condition : '{{ illuminance_sensor == none or (states[illuminance_sensor].state < illuminance_threshold ) }}'
+variables:
+  master_switch_condition: '{{ master_switch == none or (states[master_switch].state == "on" ) }}'
+  illuminance_sensor_condition : '{{ illuminance_sensor == none or (states[illuminance_sensor].state < illuminance_threshold ) }}'
 
 condition:
   - alias: "Мастер-выключатель включён и темно"
