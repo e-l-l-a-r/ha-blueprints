@@ -14,8 +14,8 @@ blueprint:
       selector:
         entity:
           domain: binary_sensor
-          # multiple: false
-      # default: ""
+          multiple: false
+      default: ""
     illuminance_sensor:
       name: Датчик освещённости (Опционально)
       description: Сенсор освещённости (в люксах) (Оставьте пустым, если не используется)
