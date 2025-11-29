@@ -71,10 +71,10 @@ trigger:
     id: "master_on"
 
   # 3. Освещённость упала ниже порога
-  - platform: numeric_state
-    entity_id: !input illuminance_sensor
-    below: !input illuminance_threshold
-    id: "dark_enough"
+  # - platform: numeric_state
+  #   entity_id: !input illuminance_sensor
+  #   below: !input illuminance_threshold
+  #   id: "dark_enough"
 
   # 4. Мастер-выключатель выключен → выключить свет
   - platform: state
