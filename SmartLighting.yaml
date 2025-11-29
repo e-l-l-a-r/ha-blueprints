@@ -85,9 +85,9 @@ trigger:
     to: "off"
     id: "master_off"
 
-variables:
-  master_switch_condition: '{{ master_switch == none or (states[master_switch].state == "on" ) }}'
-  illuminance_sensor_condition : '{{ illuminance_sensor == none or (states[illuminance_sensor].state < illuminance_threshold ) }}'
+# variables:
+#   master_switch_condition: '{{ master_switch == none or (states[master_switch].state == "on" ) }}'
+#   illuminance_sensor_condition : '{{ illuminance_sensor == none or (states[illuminance_sensor].state < illuminance_threshold ) }}'
 
 condition:
   - alias: "Мастер-выключатель включён и темно"
@@ -118,13 +118,13 @@ action:
     else:
       - if:
           # Условие: мастер-выключатель либо не задан, либо включён
-          - "{{ master_switch_condition }}"
+          # - "{{ master_switch_condition }}"
           # Движение есть
           - condition: state
             entity_id: !input motion_sensor
             state: "on"
           # Темно
-          - "{{ illuminance_sensor_condition }}"
+          # - "{{ illuminance_sensor_condition }}"
         then:
           - service: light.turn_on
             target: !input light_entities
