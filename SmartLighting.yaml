@@ -13,7 +13,7 @@ blueprint:
       description: Переключатель, разрешающий автоматизацию освещения (обычно input_boolean)
       selector:
         entity:
-          domain: input_boolean
+          domain: binary_sensor
     illuminance_sensor:
       name: Датчик освещённости
       description: Сенсор освещённости (в люксах)
