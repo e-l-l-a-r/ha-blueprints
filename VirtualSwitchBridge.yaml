@@ -1,0 +1,138 @@
+blueprint:
+  name: Мост виртуального и реального выключателя
+  description: >
+    Связывает виртуальный объект (input_boolean) с реальным (switch, light, fan и т.д.),
+    чтобы автоматизации работали только с виртуальным, а физическое устройство
+    можно было заменить, не меняя их логику.
+
+
+    **Виртуальный → реальный.** При изменении виртуального объекта реальному
+    выставляется то же состояние, и идёт синхронизация (флаг). Через заданную задержку
+    состояние проверяется: если реальный объект не изменился, команда повторяется.
+    Когда состояния сравнялись, синхронизация завершается.
+
+
+    **Реальный → виртуальный.** При изменении реального объекта (например, нажатие
+    на стене), если синхронизация не идёт, виртуальный объект приводится
+    к состоянию реального.
+
+
+    Флагом синхронизации служит факт выполнения цикла отправки команды
+    (атрибут `current` самой автоматизации, не включающий текущий прогон):
+    пока цикл работает, изменения реального объекта игнорируются.
+    Для каждой пары нужна отдельная автоматизация. Переходы из unavailable/unknown
+    не считаются изменением реального объекта. Цикл ограничен 60 попытками,
+    после чего в системный лог пишется предупреждение.
+  domain: automation
+  homeassistant:
+    min_version: 2024.10.0
+  source_url: https://github.com/e-l-l-a-r/ha-blueprints/blob/main/VirtualSwitchBridge.yaml
+  input:
+    virtual_entity:
+      name: Виртуальный объект
+      description: input_boolean, с которым работают все автоматизации
+      selector:
+        entity:
+          domain: input_boolean
+    real_entity:
+      name: Реальный объект
+      description: Физический выключатель, реле или светильник
+      selector:
+        entity:
+          domain:
+            - switch
+            - light
+            - fan
+            - input_boolean
+    delay:
+      name: Задержка проверки (секунды)
+      description: Через сколько секунд проверять, что реальный объект принял команду
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 60
+          step: 1
+          unit_of_measurement: с
+          mode: box
+
+mode: parallel
+max: 10
+max_exceeded: silent
+
+variables:
+  virtual_entity: !input virtual_entity
+  real_entity: !input real_entity
+  delay: !input delay
+  # Предохранитель от бесконечного цикла, если устройство недоступно
+  max_attempts: 60
+
+triggers:
+  - trigger: state
+    entity_id: !input virtual_entity
+    to:
+      - "on"
+      - "off"
+    id: virtual
+  - trigger: state
+    entity_id: !input real_entity
+    to:
+      - "on"
+      - "off"
+    not_from:
+      - unavailable
+      - unknown
+    id: real
+
+actions:
+  - choose:
+      # Виртуальный → реальный, пока состояния не сравняются
+      - conditions:
+          - condition: trigger
+            id: virtual
+        sequence:
+          - repeat:
+              while:
+                - condition: template
+                  value_template: "{{ states(virtual_entity) in ['on', 'off'] }}"
+                - condition: template
+                  value_template: "{{ states(real_entity) != states(virtual_entity) }}"
+                - condition: template
+                  value_template: "{{ repeat.index <= max_attempts }}"
+              sequence:
+                - action: "homeassistant.turn_{{ states(virtual_entity) }}"
+                  target:
+                    entity_id: "{{ real_entity }}"
+                  continue_on_error: true
+                - wait_template: "{{ states(real_entity) == states(virtual_entity) }}"
+                  timeout:
+                    seconds: "{{ delay }}"
+                  continue_on_timeout: true
+          - if:
+              - condition: template
+                value_template: >-
+                  {{ states(virtual_entity) in ['on', 'off']
+                     and states(real_entity) != states(virtual_entity) }}
+            then:
+              - action: system_log.write
+                data:
+                  level: warning
+                  logger: virtual_switch_bridge
+                  message: >-
+                    {{ real_entity }} не принял состояние {{ states(virtual_entity) }}
+                    от {{ virtual_entity }} после {{ max_attempts }} попыток
+      # Реальный → виртуальный, только если синхронизация не идёт
+      - conditions:
+          - condition: trigger
+            id: real
+          - condition: template
+            alias: Синхронизация не выполняется
+            value_template: "{{ this.attributes.current | int(0) == 0 }}"
+          - condition: template
+            value_template: "{{ states(real_entity) in ['on', 'off'] }}"
+          - condition: template
+            value_template: "{{ states(virtual_entity) != states(real_entity) }}"
+        sequence:
+          - action: "homeassistant.turn_{{ states(real_entity) }}"
+            target:
+              entity_id: "{{ virtual_entity }}"
