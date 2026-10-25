@@ -17,6 +17,16 @@ blueprint:
     к состоянию реального.
 
 
+    **Сверка при старте HA и перезагрузке автоматизаций.** Изменения, случившиеся,
+    пока автоматизации не работали, иначе теряются. После старта или перезагрузки мост
+    ждёт до 2 минут, пока оба объекта станут доступны, и при расхождении выравнивает их.
+    Прав тот, кто изменился позже (last_changed): если позже менялся виртуальный —
+    команда отправляется реальному (с повторами), иначе виртуальный приводится
+    к реальному. Так не теряется команда, отданная виртуальному объекту во время старта,
+    а при обычном перезапуске побеждает фактическое состояние устройства, которое
+    появляется позже восстановленного input_boolean.
+
+
     Флагом синхронизации служит факт выполнения цикла отправки команды
     (атрибут `current` самой автоматизации, не включающий текущий прогон):
     пока цикл работает, изменения реального объекта игнорируются.
@@ -66,6 +76,8 @@ variables:
   delay: !input delay
   # Предохранитель от бесконечного цикла, если устройство недоступно
   max_attempts: 60
+  # Сколько ждать доступности объектов после старта или перезагрузки
+  startup_timeout: 120
 
 triggers:
   - trigger: state
@@ -83,13 +95,44 @@ triggers:
       - unavailable
       - unknown
     id: real
+  - trigger: homeassistant
+    event: start
+    id: startup
+  - trigger: event
+    event_type: automation_reloaded
+    id: startup
 
 actions:
+  # После старта или перезагрузки ждём, пока оба объекта станут доступны
+  - if:
+      - condition: trigger
+        id: startup
+    then:
+      - wait_template: >-
+          {{ states(virtual_entity) in ['on', 'off']
+             and states(real_entity) in ['on', 'off'] }}
+        timeout:
+          seconds: "{{ startup_timeout }}"
+        continue_on_timeout: false
+  - variables:
+      states_differ: >-
+        {{ states(virtual_entity) in ['on', 'off']
+           and states(real_entity) in ['on', 'off']
+           and states(virtual_entity) != states(real_entity) }}
+      virtual_is_newer: >-
+        {{ states[virtual_entity] is not none and states[real_entity] is not none
+           and states[virtual_entity].last_changed > states[real_entity].last_changed }}
   - choose:
       # Виртуальный → реальный, пока состояния не сравняются
       - conditions:
-          - condition: trigger
-            id: virtual
+          - condition: or
+            conditions:
+              - condition: trigger
+                id: virtual
+              - condition: template
+                alias: Сверка при старте, виртуальный изменился позже
+                value_template: >-
+                  {{ trigger.id == 'startup' and states_differ and virtual_is_newer }}
         sequence:
           - repeat:
               while:
@@ -121,17 +164,26 @@ actions:
                   message: >-
                     {{ real_entity }} не принял состояние {{ states(virtual_entity) }}
                     от {{ virtual_entity }} после {{ max_attempts }} попыток
-      # Реальный → виртуальный, только если синхронизация не идёт
+      # Реальный → виртуальный: по изменению реального, если синхронизация не идёт,
+      # либо при сверке на старте, если реальный изменился позже
       - conditions:
-          - condition: trigger
-            id: real
-          - condition: template
-            alias: Синхронизация не выполняется
-            value_template: "{{ this.attributes.current | int(0) == 0 }}"
-          - condition: template
-            value_template: "{{ states(real_entity) in ['on', 'off'] }}"
-          - condition: template
-            value_template: "{{ states(virtual_entity) != states(real_entity) }}"
+          - condition: or
+            conditions:
+              - condition: and
+                conditions:
+                  - condition: trigger
+                    id: real
+                  - condition: template
+                    alias: Синхронизация не выполняется
+                    value_template: "{{ this.attributes.current | int(0) == 0 }}"
+                  - condition: template
+                    value_template: "{{ states(real_entity) in ['on', 'off'] }}"
+                  - condition: template
+                    value_template: "{{ states(virtual_entity) != states(real_entity) }}"
+              - condition: template
+                alias: Сверка при старте, реальный изменился позже
+                value_template: >-
+                  {{ trigger.id == 'startup' and states_differ and not virtual_is_newer }}
         sequence:
           - action: "homeassistant.turn_{{ states(real_entity) }}"
             target:
